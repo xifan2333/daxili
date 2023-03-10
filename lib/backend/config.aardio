@@ -1,0 +1,21 @@
+﻿
+namespace backend.config{
+	import fsys
+	runMode = function(mode){
+		if(mode == "development"){
+			rootPath = fsys.joinpath("/web.src","public","res");
+		}
+		if(mode == "production"){
+			rootPath = fsys.joinpath("/web","res");
+		}
+		
+	}
+	runMode("production")
+	
+	logoPath = fsys.joinpath( rootPath,"logo.png");
+	coverPath =fsys.joinpath( rootPath,"cover.jpg");
+	audioPath = fsys.joinpath( rootPath,"audio.mp3");
+	textDataPath = fsys.joinpath(rootPath,"data","text.json");
+	imageDataPath = fsys.joinpath(rootPath,"data","image.json");
+	imageDir = fsys.joinpath( rootPath,"image");
+}

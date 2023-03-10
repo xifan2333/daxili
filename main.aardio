@@ -1,0 +1,35 @@
+import win.ui;
+/*DSG{{*/
+mainForm = win.form(text="大喜利";right=1065;bottom=615;maximize=1;mode="popup")
+mainForm.add()
+/*}}*/
+
+import web.view;
+import wsock.tcp.simpleHttpServer;
+import fsys;
+import fsys.dlg;
+import fsys.dlg.dir;
+import web.json;
+import backend.config;
+import backend;
+global.textTable = table.array()
+global.ImageTable = table.array()
+global.history = table.array()
+global.pos = 0;
+global.rootPath = "";
+if(backend.hasQuestion()){
+	backend.loadProgress();
+}
+//导出函数
+var wb  = web.view(mainForm); 
+wb.external = backend;
+wb.go("\web\index.html",37161);
+
+mainForm.beforeDestroy = function(){
+	backend.saveProgress()
+	global.textTable = null;
+	global.ImageTable = null;
+	global.history = null;
+}
+mainForm.show(3/*_SW_MAXIMIZE*/);
+win.loopMessage();

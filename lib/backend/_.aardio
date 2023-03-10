@@ -1,0 +1,248 @@
+﻿
+namespace backend{
+	import backend.config;
+	import fsys
+	import fsys.dlg
+	import fsys.dlg.dir
+	import web.json
+	import table
+	import string
+	import io;
+	import math;
+	//settings 软件配置项
+	chooseLogo = function(){
+		var path = fsys.dlg.open("图片文件|*.png");
+       	return path ;
+		
+	}
+	chooseCover = function(){
+		var path = fsys.dlg.open("图片文件|*.jpg");
+       	return path ;
+		
+	}
+	chooseAudio = function(){
+		var path = fsys.dlg.open("音频文件|*.mp3");
+       	return path ;	
+	}
+	saveConfig = function(logoPath,coverPath,audioPath){
+		var modify = table.array()
+		if(logoPath !== ""){
+			fsys.copy(logoPath,backend.config.logoPath);
+			table.push(modify,"logo");
+		}
+		if(coverPath !== ""){
+			fsys.copy(coverPath,backend.config.coverPath);
+			table.push(modify,"封面");
+			
+		}
+		if(audioPath !== ""){
+			fsys.copy(audioPath,backend.config.audioPath); 
+			table.push(modify,"音乐");
+		}
+    	var res = {
+        	status=200;
+    		msg= string.join(modify,"/") ++ "已配置成功!";	
+    	}
+     res = web.json.stringify(res,true);
+     return res;	
+	}
+	
+	//settings 题库配置项
+	
+	chooseTextPath = function(){
+		var path = fsys.dlg.open("文本文件|*.txt");
+       	return path ;
+		
+	}
+	chooseImageDir = function(){
+		var path = fsys.dlg.dir();
+       	return path ;	
+	}
+	importTextQuestion = function (textPath){
+		global.textTable = {};
+		var txt = string.load(textPath);
+		 for line in string.lines(txt){
+            table.push(global.textTable,{
+                text = line;
+                used = false;
+            })   
+        }
+        string.save(backend.config.textDataPath,web.json.stringifyArray(global.textTable,true));
+	}
+	importImageQuestion = function (imageDir){
+		global.imageTable = {};
+		var imgNum = 1
+        fsys.enum( imageDir, "*.*",
+        	function(dir,filename,fullpath,findData){
+        		if(filename){
+        		    var rename = string.format("%03i", imgNum) ++ "." ++ fsys.getExtensionName(filename)
+                   	fsys.copy(fullpath,fsys.joinpath(backend.config.imageDir,rename));
+                   	table.push(global.imageTable,{
+                   	    imgsrc = "/res/image/"++ rename;
+                   	    used = false
+                   	});
+                   	imgNum = imgNum+1;
+        		}
+        	}
+        );
+        string.save(backend.config.imageDataPath,web.json.stringify(global.imageTable,true));
+	}
+	updateQuestion= function (textPath,imageDir){
+		
+		if(textPath!==""){
+			importTextQuestion(textPath)
+		}
+		if(imageDir!==""){
+			importImageQuestion(imageDir)	
+		}
+		var res =  {
+			status = 200;
+			msg = "共导入文字题" ++ table.len(global.textTable) ++"道,图片题"++ table.len(global.imageTable)++"道。"
+		}
+		 res = web.json.stringify(res,true);
+		 return res
+		
+	}
+	hasQuestion = function(){
+		return (io.exist(backend.config.textDataPath) and io.exist(backend.config.imageDataPath))
+	
+	}
+	loadProgress= function(){
+		global.textTable = web.json.parse(string.load(backend.config.textDataPath))
+		global.imageTable = web.json.parse(string.load(backend.config.imageDataPath))
+	
+	}
+	saveProgress= function (){
+		if(global.textTable and global.imageTable){
+			string.save(backend.config.textDataPath,web.json.stringifyArray(global.textTable,true));
+			string.save(backend.config.imageDataPath,web.json.stringifyArray(global.imageTable,true));
+		
+		}
+	}
+	goToTextQuestion = function (index){
+		if(index<=table.len(global.textTable)){
+			global.textTable[index].used = true;
+			return web.json.stringify(global.textTable[index])
+		}
+		return web.json.stringify({msg="输入题号超出范围，最大值为" ++ table.len(global.textTable) })
+		
+	
+	}
+	goToImageQuestion = function (index){
+		if(index<=table.len(global.imageTable)){
+			global.imageTable[index].used = true;
+			return web.json.stringify(global.imageTable[index]);
+		}
+		return web.json.stringify({msg="输入题号超出范围，最大值为" ++ table.len(global.imageTable) })
+		
+	}
+	randomTextQuestion= function(){
+		var unusedText = table.filter(global.textTable,function(v,index){
+			return v.used == false	
+		})
+		var unusedTextCount = table.len(unusedText) 
+		if(unusedTextCount <= 0){
+			return web.json.stringify({msg="文字题已轮空，请重置数据库"})
+		}else{
+			var randomIndex = math.random(1,unusedTextCount); 
+			var index = table.find(global.textTable,function(v,index){
+				return v.text == unusedText[randomIndex].text
+			})
+			global.textTable[index].used = true;
+			var data = {
+				"type" = "text";
+				index = index;
+			}
+			var last = {
+				"type" = "text";
+				index = index;
+			}
+			table.push(global.history,last);
+			global.pos = global.pos + 1;
+			return web.json.stringify(data);
+		}
+	
+	}
+	randomImageQuestion = function(){
+		var unusedImage = table.filter(global.imageTable,function(v,index){
+			return v.used == false	
+		})
+		var unusedImageCount = table.len(unusedImage)
+		if(unusedImageCount <= 0){
+			return web.json.stringify({msg="图片题已轮空，请重置数据库"})
+		}else{
+			var randomIndex = math.random(1,unusedImageCount);
+			var index = table.find(global.imageTable,function(v,index){
+				return v.imgsrc == unusedImage[randomIndex].imgsrc
+			})
+			global.imageTable[index].used = true;
+			var data = {
+				"type" = "image";
+				index = index;
+			}
+			var last = {
+				"type" = "text";
+				index = index;
+			}
+			table.push(global.history,last);
+			global.pos = global.pos + 1;
+			return web.json.stringify(data);
+		}
+	
+	}
+	last = function(){
+		if(global.pos<=1){
+			return web.json.stringify({msg="无历史记录"});
+		}else{
+			global.pos = global.pos-1;
+			return web.json.stringify(global.history[global.pos]);
+		}
+			
+	}
+	next = function(questionType){
+		if(global.pos < table.len(global.history)){
+			global.pos = global.pos + 1;
+			return web.json.stringify(global.history[global.pos]); 
+		}else{
+			if(questionType == "text"){
+				return randomTextQuestion()
+			}
+			if(questionType == "image"){
+				return randomImageQuestion()
+			}		
+		}
+		
+	}
+	fetchDataDetail = function(){
+		var usedText = table.filter(global.textTable,function(v,index){
+			return v.used == true;	
+		})
+		var usedTextCount = table.len(usedText); 
+		var usedImage = table.filter(global.imageTable,function(v,index){
+			return v.used == true;	
+		})
+		var usedImageCount = table.len(usedImage);
+		var data = {
+			textTotal = table.len(global.textTable);
+			imageTotal = table.len(global.imageTable);
+			textUsedNum = usedTextCount;
+			imageUsedNum = usedImageCount
+		
+		}
+		return web.json.stringify(data)
+		
+	}
+	clearUsedData = function(){
+		for k,v in global.textTable{
+			v.used = false
+		
+		}
+		for k,v in global.imageTable{
+			v.used = false
+		}
+		saveProgress();
+		return web.json.stringify({msg="数据库已重置"})
+	
+	}
+			
+}
