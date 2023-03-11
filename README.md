@@ -22,7 +22,7 @@
 ## 下载地址
 
 - [安装版(点击下载)](https://storage.xifan.fun/daxili/installer.exe)
-- [绿色版 (点击下载)](https://storage.xifan.fun/daxili/installer.exe)
+- [绿色版 (点击下载)](https://storage.xifan.fun/daxili/portable.zip)
 
 
 
